@@ -1,126 +1,21 @@
 version: '3.8'
 
 services:
-  # ============================================
-  # API ATLAS 2.0 - Next.js Application
-  # ============================================
   api-atlas:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: api-atlas
     ports:
-      - "${PORT:-9031}:9031"
+      - "9031:9031"
     environment:
-      # OpenRouteService Configuration
-      - ORS_BASE_URL=http://ors:8082/ors
-      # VROOM Configuration
-      - VROOM_BASE_URL=http://vroom:3000
-      # OpenAI Configuration (provide your key)
+      - ORS_BASE_URL=${ORS_BASE_URL}
+      - VROOM_BASE_URL=${VROOM_BASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
-      # Server Configuration
       - PORT=9031
       - NODE_ENV=production
-      # Security Configuration
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
       - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3990}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:9031}
     restart: unless-stopped
-    depends_on:
-      - ors
-      - vroom
-    networks:
-      - atlas-network
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:9031/api/atlas/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    # Security: Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-    # Security: Read-only root filesystem
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /app/.next/cache
-    # Security: Drop all capabilities
-    cap_drop:
-      - ALL
-    # Security: No new privileges
-    security_opt:
-      - no-new-privileges:true
-
-  # ============================================
-  # OpenRouteService - Para rotas com malha viária real
-  # ============================================
-  ors:
-    image: openrouteservice/openrouteservice:latest
-    container_name: ors-server
-    ports:
-      - "8082:8082"
-    environment:
-      - ORS_CONFIG=/ors-config.json
-      - LOGGING_LEVEL=INFO
-    restart: unless-stopped
-    networks:
-      - atlas-network
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8082/ors/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-    # Security: Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
-          cpus: '1'
-          memory: 2G
-
-  # ============================================
-  # VROOM - Para otimização matemática de rotas
-  # ============================================
-  vroom:
-    image: vroom/vroom:latest
-    container_name: vroom-server
-    ports:
-      - "3000:3000"
-    command: ["--host", "0.0.0.0"]
-    restart: unless-stopped
-    networks:
-      - atlas-network
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    # Security: Resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-
-networks:
-  atlas-network:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.name: atlas-net
-      com.docker.network.bridge.enable_icc: "true"
-      com.docker.network.bridge.enable_ip_masquerade: "true"
