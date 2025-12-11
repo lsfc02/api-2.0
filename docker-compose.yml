@@ -63,7 +63,7 @@ services:
   # OpenRouteService - Para rotas com malha viária real
   # ============================================
   ors:
-    image: ghcr.io/giscience/ors-server:latest
+    image: openrouteservice/openrouteservice:latest
     container_name: ors-server
     ports:
       - "8082:8082"
