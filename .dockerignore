@@ -56,9 +56,8 @@ dist
 .gitattributes
 .github
 
-# Documentation
-README.md
-CHANGELOG.md
+# Documentation (keep only large docs out)
+*.md
 LICENSE
 docs
 
@@ -68,10 +67,9 @@ docs
 .circleci
 azure-pipelines.yml
 
-# Docker
-Dockerfile
+# Docker (keep docker-compose.yml ignored, but NOT Dockerfile)
 docker-compose.yml
-.dockerignore
+docker-compose.*.yml
 
 # Logs
 logs
