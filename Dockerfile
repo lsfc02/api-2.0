@@ -12,9 +12,9 @@ RUN adduser --system --uid 1001 nextjs
 
 WORKDIR /app
 
-# Install dependencies only
+# Install ALL dependencies (needed for build)
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production --ignore-scripts && \
+RUN npm ci --ignore-scripts && \
     npm cache clean --force
 
 # Stage 2: Builder
