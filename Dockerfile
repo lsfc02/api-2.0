@@ -31,6 +31,8 @@ COPY . .
 # Set environment variable for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Increase Node memory limit for build (reduce if server has less RAM)
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # Build the application
 RUN npm run build
@@ -63,11 +65,11 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expose port
-EXPOSE 3990
+EXPOSE 9031
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3990/api/atlas/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:9031/api/atlas/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Use dumb-init to handle signals
 ENTRYPOINT ["dumb-init", "--"]

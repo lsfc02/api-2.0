@@ -89,8 +89,7 @@ export async function POST(request: NextRequest) {
       const resultado = await gerarRoteiro(
         clientesProcessados,
         diasDaSemana,
-        maxPorDia,
-        minPorDia
+        base
       );
 
       // Adicionar rotas desta semana ao total

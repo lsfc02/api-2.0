@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { orsService } from '@/lib/atlas/orsService.js';
-import { vroomService } from '@/lib/atlas/vroomService.js';
+import { orsService } from '@/lib/atlas/orsService';
+import { vroomService } from '@/lib/atlas/vroomService';
 
 export async function GET() {
   const status = { 
