@@ -55,15 +55,6 @@ const nextConfig = {
       },
     ];
   },
-
-  // Environment variables that should be available at runtime
-  env: {
-    ORS_BASE_URL: process.env.ORS_BASE_URL,
-    VROOM_BASE_URL: process.env.VROOM_BASE_URL,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    PORT: process.env.PORT || '9031',
-  },
 }
 
 module.exports = nextConfig
