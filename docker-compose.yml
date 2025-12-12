@@ -6,13 +6,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: api-atlas
-    # Network mode: host permite acesso direto à rede do servidor
-    # Necessário para acessar ORS/VROOM em IPs privados (192.168.x.x)
-    network_mode: "host"
-    # NOTA: Quando usar network_mode: host, a seção 'ports' é ignorada
-    # A aplicação roda na porta definida pela variável PORT (9031)
-    # ports:
-    #   - "9031:9031"
+    # IMPORTANTE: extra_hosts adiciona mapeamento de host para o container
+    # Permite que o container acesse o host Docker via 'host.docker.internal'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9031:9031"
     environment:
       # IMPORTANTE: Configure estas variáveis no Portainer!
       # ORS e VROOM são obrigatórios para funcionamento correto
