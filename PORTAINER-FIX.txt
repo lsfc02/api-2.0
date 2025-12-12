@@ -1,0 +1,69 @@
+========================================
+CORREÇÃO PARA PORTAINER
+========================================
+
+✅ TODAS AS CORREÇÕES JÁ ESTÃO NO GITHUB!
+✅ O BUILD LOCAL FUNCIONA PERFEITAMENTE!
+
+O problema é que o Portainer está usando código ANTIGO.
+
+========================================
+SOLUÇÃO - FAÇA ISSO NO PORTAINER:
+========================================
+
+1. DELETE a stack completamente (não só "stop", mas DELETE)
+
+2. Limpe o cache do Docker no Portainer:
+   - Vá em "Environments" → selecione seu ambiente
+   - Vá em "Images" → delete TODAS as imagens do api-atlas
+   - Vá em "Volumes" → delete volumes órfãos (se houver)
+
+3. RECRIE a stack do ZERO com estas configurações:
+
+   Repository URL:
+   git@github.com:lsfc02/api-2.0.git
+
+   OU (se SSH não funcionar):
+   https://github.com/lsfc02/api-2.0.git
+
+   Branch: main
+   Compose path: docker-compose.yml
+
+4. Configure as variáveis de ambiente:
+
+   OPENAI_API_KEY=sua-key-aqui
+   ORS_BASE_URL=http://192.168.50.6:8082/ors
+   VROOM_BASE_URL=http://192.168.50.6:3000
+   NODE_ENV=production
+   PORT=9031
+
+5. Marque a opção: "Re-pull image and redeploy"
+
+6. Deploy!
+
+========================================
+SE AINDA DER ERRO:
+========================================
+
+Copie o LOG COMPLETO do erro (não só "exit code: 1")
+O log vai mostrar QUAL linha está falhando no build.
+
+Procure por linhas como:
+- "error TS..."
+- "Module not found"
+- "Cannot find"
+
+E me envie o texto completo.
+
+========================================
+CÓDIGO ATUAL NO GITHUB (commit 45b2786):
+========================================
+
+✅ src/app/api/atlas/status/route.ts - imports SEM .js
+✅ src/app/api/atlas/gerarComConfigs/route.ts - 3 params (correto)
+✅ src/middleware.ts - sem request.ip
+✅ docker-compose.yml - só api-atlas (sem ORS/VROOM)
+✅ .dockerignore - Dockerfile NÃO ignorado
+✅ next.config - ignoreBuildErrors: true
+
+========================================

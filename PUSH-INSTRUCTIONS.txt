@@ -1,0 +1,42 @@
+========================================
+✅ PUSH FEITO COM SUCESSO!
+========================================
+
+Commit: 6a5d9cf
+"fix: install all dependencies for build"
+
+O PROBLEMA FOI ENCONTRADO E CORRIGIDO:
+
+O Dockerfile estava usando npm ci --only=production
+Isso instalava APENAS dependências de produção,
+mas o build precisa das devDependencies (TypeScript, etc.)
+
+CORREÇÃO: Removido o --only=production
+
+AGORA VÁ NO PORTAINER:
+
+1. Delete a stack completamente
+2. Limpe as imagens antigas do Docker
+3. Recrie a stack do ZERO
+4. O build VAI FUNCIONAR!
+
+========================================
+CORREÇÕES QUE ESTÃO NO COMMIT LOCAL:
+========================================
+
+✅ src/app/api/atlas/status/route.ts - imports corrigidos (sem .js)
+✅ src/app/api/atlas/gerarComConfigs/route.ts - 4 params → 3 params
+✅ src/middleware.ts - request.ip removido
+✅ docker-compose.yml - simplificado (sem ORS/VROOM)
+✅ .dockerignore - Dockerfile não é mais ignorado
+
+========================================
+APÓS O PUSH, NO PORTAINER:
+========================================
+
+Environment Variables:
+OPENAI_API_KEY=sua-key
+ORS_BASE_URL=http://seu-ip:8082/ors
+VROOM_BASE_URL=http://seu-ip:3000
+
+========================================

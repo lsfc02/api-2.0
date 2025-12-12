@@ -4,6 +4,15 @@
 
 As variáveis `ORS_BASE_URL` e `VROOM_BASE_URL` são **obrigatórias** para o funcionamento correto da API Atlas.
 
+## 🌐 Problema de Rede Docker
+
+**ATENÇÃO:** Containers Docker não conseguem acessar IPs da rede local (como `192.168.x.x`) diretamente!
+
+Se ORS e VROOM estão rodando:
+- **No mesmo servidor que o Portainer:** Use `host.docker.internal` OU o IP público do servidor
+- **Em outro servidor:** Use o IP público ou hostname do servidor
+- **Em containers Docker:** Use o nome do container ou network do Docker
+
 ## Configuração no Portainer
 
 ### Método 1: Editar o Stack Diretamente
