@@ -16,7 +16,7 @@ __tests__
 test
 
 # Next.js
-.next
+# .next is needed for the build stage, so we don't ignore it
 out
 build
 dist
