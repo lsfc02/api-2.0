@@ -54,8 +54,8 @@ export class ORSService {
     this.baseUrl = envBase;
     this.defaultMatrixChunkHint = Number(process.env.ORS_MATRIX_CHUNK_HINT) || 50;
     this.directionsMaxCoords = Number(process.env.ORS_DIRECTIONS_MAX_COORDS) || 50;
-    this.matrixTimeoutMs = Number(process.env.ORS_MATRIX_TIMEOUT_MS) || 45000;
-    this.directionsTimeoutMs = Number(process.env.ORS_DIRECTIONS_TIMEOUT_MS) || 60000;
+    this.matrixTimeoutMs = Number(process.env.ORS_MATRIX_TIMEOUT_MS) || 60000; // Increased from 45s to 60s
+    this.directionsTimeoutMs = Number(process.env.ORS_DIRECTIONS_TIMEOUT_MS) || 120000; // Increased from 60s to 120s (2 min)
   }
 
   async checkHealth(): Promise<boolean> {
