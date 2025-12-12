@@ -18,6 +18,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/icon" type="image/png" />
+      </head>
       <body className="font-mono">{children}</body>
     </html>
   );
