@@ -192,13 +192,7 @@ export class ORSService {
           geometry.push(...mapped);
         }
       } catch (err: any) {
-        console.error(`❌ ORS directions batch ${b + 1}/${batches.length} failed:`, {
-          message: err?.message,
-          name: err?.name,
-          cause: err?.cause,
-          segmentSize: segment.length,
-          url: `${this.baseUrl}/v2/directions/driving-car/geojson`
-        });
+        console.warn(`⚠️ ORS batch ${b + 1}/${batches.length} failed, using linear fallback`);
         batches[b].forEach((p) => geometry.push([p.latitude, p.longitude]));
       }
     }
@@ -246,14 +240,8 @@ export class ORSService {
 
       return await this.orsDirectionsGeometry(clientes);
     } catch (e: any) {
-      console.error('❌ Erro detalhado no ORS route:', {
-        message: e?.message,
-        name: e?.name,
-        cause: e?.cause,
-        stack: e?.stack?.split('\n')?.[0],
-        clientesCount: clientes?.length,
-        baseUrl: this.baseUrl
-      });
+      console.warn('⚠️ Erro no ORS route:', e?.message ?? e);
+      // Always return fallback linear geometry
       return (clientes || []).map((c) => [c.latitude, c.longitude]);
     }
   }
