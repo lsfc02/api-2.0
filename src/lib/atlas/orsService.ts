@@ -60,10 +60,20 @@ export class ORSService {
 
   async checkHealth(): Promise<boolean> {
     try {
-      const resp = await fetchWithTimeout(`${this.baseUrl}/v2/health`, { method: 'GET' }, 5000);
+      const url = `${this.baseUrl}/v2/health`;
+      console.log(`🔍 Testing ORS health at: ${url}`);
+
+      const resp = await fetchWithTimeout(url, { method: 'GET' }, 10000);
+      console.log(`✅ ORS health check response: ${resp.status} ${resp.statusText}`);
+
       return resp.ok;
-    } catch (err) {
-      console.warn('⚠️ ORS health check failed:', err);
+    } catch (err: any) {
+      console.error('❌ ORS health check failed:', {
+        message: err.message,
+        name: err.name,
+        cause: err.cause,
+        baseUrl: this.baseUrl
+      });
       return false;
     }
   }

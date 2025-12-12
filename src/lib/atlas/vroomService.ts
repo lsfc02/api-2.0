@@ -90,17 +90,28 @@ export class VROOMService {
 
   async checkHealth(): Promise<boolean> {
     try {
+      const url = `${this.baseUrl}/?geometry=false`;
+      console.log(`🔍 Testing VROOM health at: ${url}`);
+
       const payload = {
         jobs: [{ id: 1, location: [-46.6576, -23.5872] }],
         vehicles: [{ id: 1, start: [-46.6559, -23.5614], profile: "driving-car" }],
       };
-      const res = await fetchWithTimeout(`${this.baseUrl}/?geometry=false`, {
+      const res = await fetchWithTimeout(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }, 5000);
+      }, 10000);
+
+      console.log(`✅ VROOM health check response: ${res.status} ${res.statusText}`);
       return res.ok;
-    } catch {
+    } catch (err: any) {
+      console.error('❌ VROOM health check failed:', {
+        message: err.message,
+        name: err.name,
+        cause: err.cause,
+        baseUrl: this.baseUrl
+      });
       return false;
     }
   }

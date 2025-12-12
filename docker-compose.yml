@@ -6,6 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: api-atlas
+    # Use network_mode: host se os serviços ORS/VROOM estão no mesmo servidor
+    # Descomente a linha abaixo se necessário:
+    # network_mode: "host"
     ports:
       - "9031:9031"
     environment:
