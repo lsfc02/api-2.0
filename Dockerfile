@@ -67,6 +67,10 @@ USER nextjs
 # Expose port
 EXPOSE 9031
 
+# Set the port and hostname for Next.js standalone
+ENV PORT=9031
+ENV HOSTNAME="0.0.0.0"
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:9031/api/atlas/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
