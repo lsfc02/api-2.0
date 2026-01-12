@@ -741,19 +741,27 @@ async function sequenceAndGeometry(
       // VROOM já otimizou e retornou a geometria
       let geometry = res.geometry?.length > 0 ?
         res.geometry :
-        await orsService.getRouteFromORS(res.ordered).catch(() =>
-          res.ordered.map(c => [c.latitude, c.longitude] as [number, number])
-        );
+        await orsService.getRouteFromORS(res.ordered).catch((err) => {
+          console.warn(`⚠️ ORS falhou após VROOM: ${err?.message || err}`);
+          return res.ordered.map(c => [c.latitude, c.longitude] as [number, number]);
+        });
 
       return { ordered: res.ordered, geometry };
     }
-  } catch {}
+  } catch (err: any) {
+    console.warn(`⚠️ VROOM falhou: ${err?.message || err}`);
+  }
 
   const ordered = enumerate(seq);
 
   // Fallback: usar ORS para gerar geometria da rota
+  console.log(`   🔄 Tentando ORS para ${seq.length} clientes (fallback após VROOM falhar)...`);
   let geometry = await orsService.getRouteFromORS(seq)
-    .catch(() => seq.map(c => [c.latitude, c.longitude] as [number, number]));
+    .catch((err) => {
+      console.warn(`⚠️ ORS também falhou: ${err?.message || err}`);
+      console.warn(`   Usando geometria linear (linha reta) para ${seq.length} clientes`);
+      return seq.map(c => [c.latitude, c.longitude] as [number, number]);
+    });
 
   return { ordered, geometry };
 }

@@ -189,6 +189,8 @@ export class ORSService {
           continue;
         }
 
+        console.log(`      ✅ Batch ${b + 1} sucesso: ${mapped.length} pontos de geometria`);
+
         // avoid duplicating the last point of previous segment
         if (geometry.length > 0) {
           const last = geometry[geometry.length - 1];
@@ -248,10 +250,14 @@ export class ORSService {
         }
 
         const mapped = flattened.map((pt) => [Number(pt[1]), Number(pt[0])] as [number, number]).filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+        console.log(`   ✅ ORS: Rota gerada com sucesso (${mapped.length} pontos de geometria)`);
         return dedupeConsecutive(mapped);
       }
 
-      return await this.orsDirectionsGeometry(clientes);
+      console.log(`   🔄 ORS: ${clientes.length} clientes (usando batches)...`);
+      const result = await this.orsDirectionsGeometry(clientes);
+      console.log(`   ✅ ORS batches: ${result.length} pontos de geometria gerados`);
+      return result;
     } catch (e: any) {
       console.warn('⚠️ Erro no ORS route:', e?.message ?? e);
       // Always return fallback linear geometry
