@@ -766,8 +766,10 @@ export async function gerarRoteiro(
 
   console.log(`\n${'='.repeat(80)}`);
   console.log(`🎯 ROTEIRIZAÇÃO v10 - COM CORREÇÃO DE FRAGMENTAÇÃO`);
-  if (base) {
+  if (base && base.lat !== undefined && base.lon !== undefined) {
     console.log(`📍 Ponto de partida definido: lat=${base.lat}, lon=${base.lon}`);
+  } else {
+    console.log(`📍 Ponto de partida: Não especificado (será usado o centroide)`);
   }
   console.log(`${'='.repeat(80)}`);
 
@@ -1077,8 +1079,10 @@ export async function gerarRoteiro(
   }
   
   console.log(`\n🗺️ Gerando rotas otimizadas...`);
-  if (base) {
+  if (base && base.lat !== undefined && base.lon !== undefined) {
     console.log(`   📍 Todas as rotas começarão próximo ao ponto: lat=${base.lat}, lon=${base.lon}`);
+  } else {
+    console.log(`   📍 Rotas começarão do cliente mais próximo ao centroide de cada dia`);
   }
 
   const dias: RotaDia[] = [];

@@ -53,9 +53,12 @@ export class ORSService {
     const envBase = (process.env.ORS_BASE_URL || 'http://192.168.50.6:8082/ors').replace(/\/+$/, '');
     this.baseUrl = envBase;
     this.defaultMatrixChunkHint = Number(process.env.ORS_MATRIX_CHUNK_HINT) || 50;
-    this.directionsMaxCoords = Number(process.env.ORS_DIRECTIONS_MAX_COORDS) || 50;
+    // Reduzir o máximo de coordenadas por requisição (ORS pode ter limite de ~25)
+    this.directionsMaxCoords = Number(process.env.ORS_DIRECTIONS_MAX_COORDS) || 25;
     this.matrixTimeoutMs = Number(process.env.ORS_MATRIX_TIMEOUT_MS) || 60000; // Increased from 45s to 60s
     this.directionsTimeoutMs = Number(process.env.ORS_DIRECTIONS_TIMEOUT_MS) || 120000; // Increased from 60s to 120s (2 min)
+
+    console.log(`🔧 ORS Config: baseUrl=${this.baseUrl}, directionsMaxCoords=${this.directionsMaxCoords}, timeout=${this.directionsTimeoutMs}ms`);
   }
 
   async checkHealth(): Promise<boolean> {
@@ -135,6 +138,13 @@ export class ORSService {
           continue;
         }
 
+        // Log detalhado do batch
+        console.log(`   🔄 ORS batch ${b + 1}/${batches.length}: ${coords.length} pontos`);
+        if (coords.length > 0) {
+          console.log(`      Primeiro: [${coords[0][0].toFixed(6)}, ${coords[0][1].toFixed(6)}]`);
+          console.log(`      Último: [${coords[coords.length-1][0].toFixed(6)}, ${coords[coords.length-1][1].toFixed(6)}]`);
+        }
+
         const url = `${this.baseUrl}/v2/directions/driving-car/geojson`;
         const body = { coordinates: coords, instructions: false, geometry_simplify: true, continue_straight: true };
 
@@ -193,6 +203,9 @@ export class ORSService {
         }
       } catch (err: any) {
         console.warn(`⚠️ ORS batch ${b + 1}/${batches.length} failed, using linear fallback`);
+        console.warn(`   Erro: ${err?.message || 'Desconhecido'}`);
+        console.warn(`   URL: ${this.baseUrl}/v2/directions/driving-car/geojson`);
+        console.warn(`   Clientes no batch: ${segment.length}`);
         batches[b].forEach((p) => geometry.push([p.latitude, p.longitude]));
       }
     }
