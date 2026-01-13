@@ -29,6 +29,6 @@ services:
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
       - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
       # CORS: Permite todas as origens em produção
-      # IPs permitidos: 192.168.1.24:9443, 9031, 9032
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://192.168.1.24:9443,http://192.168.1.24:9031,http://192.168.1.24:9032,http://localhost:3000,http://localhost:9031,*}
+      # IPs e domínios permitidos
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://roteirizacao.ciafaeldistribuidora.com.br,http://192.168.1.24:9443,http://192.168.1.24:9031,http://192.168.1.24:9032,http://localhost:3000,http://localhost:9031,*}
     restart: unless-stopped

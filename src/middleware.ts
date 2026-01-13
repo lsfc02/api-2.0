@@ -84,15 +84,21 @@ export function middleware(request: NextRequest) {
   const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS || '*';
   const origin = request.headers.get('origin');
 
-  if (allowedOrigins === '*') {
-    response.headers.set('Access-Control-Allow-Origin', '*');
-  } else if (origin && allowedOrigins.split(',').map(o => o.trim()).includes(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
+  // Se allowedOrigins contém '*' ou é exatamente '*', permite qualquer origem
+  if (allowedOrigins === '*' || allowedOrigins.includes('*')) {
+    response.headers.set('Access-Control-Allow-Origin', origin || '*');
     response.headers.set('Vary', 'Origin');
+  } else if (origin) {
+    const allowed = allowedOrigins.split(',').map(o => o.trim());
+    if (allowed.includes(origin)) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Vary', 'Origin');
+    }
   }
 
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset');
+  response.headers.set('Access-Control-Expose-Headers', 'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset');
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Max-Age', '86400');
 
