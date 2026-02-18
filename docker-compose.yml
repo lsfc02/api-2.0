@@ -16,9 +16,9 @@ services:
       # O container precisa ter rota de rede para esse IP
       - ORS_BASE_URL=${ORS_BASE_URL:-http://192.168.50.6:8082/ors}
       - VROOM_BASE_URL=${VROOM_BASE_URL:-http://192.168.50.6:3000}
-      # Timeouts ORS (em milissegundos) - aumentados para evitar timeout em redes lentas
-      - ORS_MATRIX_TIMEOUT_MS=${ORS_MATRIX_TIMEOUT_MS:-90000}
-      - ORS_DIRECTIONS_TIMEOUT_MS=${ORS_DIRECTIONS_TIMEOUT_MS:-180000}
+      # Timeouts ORS (em milissegundos)
+      - ORS_MATRIX_TIMEOUT_MS=${ORS_MATRIX_TIMEOUT_MS:-45000}
+      - ORS_DIRECTIONS_TIMEOUT_MS=${ORS_DIRECTIONS_TIMEOUT_MS:-30000}
       # Configuração de batches do ORS (reduzido para evitar erros)
       - ORS_DIRECTIONS_MAX_COORDS=${ORS_DIRECTIONS_MAX_COORDS:-25}
       - ORS_MATRIX_CHUNK_HINT=${ORS_MATRIX_CHUNK_HINT:-40}

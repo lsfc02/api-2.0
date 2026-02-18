@@ -42,6 +42,15 @@ function dedupeConsecutive(points: Array<[number, number]>) {
   return out;
 }
 
+/** Detecta se o erro é falha de conexão (não HTTP) */
+function isConnectionError(err: any): boolean {
+  if (!err) return false;
+  if (err.name === 'AbortError') return true;
+  if (err.message === 'fetch failed') return true;
+  const code = err?.cause?.code ?? err?.code ?? '';
+  return ['ECONNREFUSED', 'ETIMEDOUT', 'ENETUNREACH', 'EHOSTUNREACH', 'ECONNRESET', 'ENOTFOUND'].includes(code);
+}
+
 export class ORSService {
   private baseUrl: string;
   private defaultMatrixChunkHint: number;
@@ -53,12 +62,11 @@ export class ORSService {
     const envBase = (process.env.ORS_BASE_URL || 'http://192.168.50.6:8082/ors').replace(/\/+$/, '');
     this.baseUrl = envBase;
     this.defaultMatrixChunkHint = Number(process.env.ORS_MATRIX_CHUNK_HINT) || 50;
-    // Reduzir o máximo de coordenadas por requisição (ORS pode ter limite de ~25)
     this.directionsMaxCoords = Number(process.env.ORS_DIRECTIONS_MAX_COORDS) || 25;
-    this.matrixTimeoutMs = Number(process.env.ORS_MATRIX_TIMEOUT_MS) || 60000; // Increased from 45s to 60s
-    this.directionsTimeoutMs = Number(process.env.ORS_DIRECTIONS_TIMEOUT_MS) || 120000; // Increased from 60s to 120s (2 min)
+    this.matrixTimeoutMs = Number(process.env.ORS_MATRIX_TIMEOUT_MS) || 45000;
+    this.directionsTimeoutMs = Number(process.env.ORS_DIRECTIONS_TIMEOUT_MS) || 30000;
 
-    console.log(`🔧 ORS Config: baseUrl=${this.baseUrl}, directionsMaxCoords=${this.directionsMaxCoords}, timeout=${this.directionsTimeoutMs}ms`);
+    console.log(`🔧 ORS Config: baseUrl=${this.baseUrl}, directionsMaxCoords=${this.directionsMaxCoords}, directionsTimeout=${this.directionsTimeoutMs}ms, matrixTimeout=${this.matrixTimeoutMs}ms`);
   }
 
   async checkHealth(): Promise<boolean> {
@@ -73,8 +81,7 @@ export class ORSService {
     } catch (err: any) {
       console.error('❌ ORS health check failed:', {
         message: err.message,
-        name: err.name,
-        cause: err.cause,
+        cause: err.cause?.code ?? err.cause?.message ?? String(err.cause ?? ''),
         baseUrl: this.baseUrl
       });
       return false;
@@ -124,26 +131,27 @@ export class ORSService {
     for (let i = 0; i < points.length; i += maxCoords) batches.push(points.slice(i, i + maxCoords));
 
     let geometry: Array<[number, number]> = [];
+    // Circuit breaker: se conexão falhar, pula batches restantes imediatamente
+    let connectionFailed = false;
 
     for (let b = 0; b < batches.length; b++) {
       const segment = batches[b];
       if (segment.length < 2) continue;
 
+      if (connectionFailed) {
+        segment.forEach((p) => geometry.push([p.latitude, p.longitude]));
+        continue;
+      }
+
       try {
         const coords = segment.map((p) => [p.longitude, p.latitude] as [number, number]); // [lon, lat]
-        // validate coords quickly
         if (coords.some(c => !isFinite(c[0]) || !isFinite(c[1]))) {
-          console.warn("⚠️ ORS directions: invalid coords in segment, skipping ORS call and using linear fallback.");
+          console.warn("⚠️ ORS directions: coords inválidas no segmento, usando fallback linear.");
           segment.forEach((p) => geometry.push([p.latitude, p.longitude]));
           continue;
         }
 
-        // Log detalhado do batch
         console.log(`   🔄 ORS batch ${b + 1}/${batches.length}: ${coords.length} pontos`);
-        if (coords.length > 0) {
-          console.log(`      Primeiro: [${coords[0][0].toFixed(6)}, ${coords[0][1].toFixed(6)}]`);
-          console.log(`      Último: [${coords[coords.length-1][0].toFixed(6)}, ${coords[coords.length-1][1].toFixed(6)}]`);
-        }
 
         const url = `${this.baseUrl}/v2/directions/driving-car/geojson`;
         const body = { coordinates: coords, instructions: false, geometry_simplify: true, continue_straight: true };
@@ -156,7 +164,7 @@ export class ORSService {
 
         if (!resp.ok) {
           const txt = await resp.text().catch(() => String(resp.status));
-          console.warn(`⚠️ ORS directions segment failed (status ${resp.status}): ${txt}. Using linear fallback for this segment.`);
+          console.warn(`⚠️ ORS batch ${b + 1}/${batches.length} HTTP ${resp.status}: ${txt}. Fallback linear.`);
           segment.forEach((p) => geometry.push([p.latitude, p.longitude]));
           continue;
         }
@@ -166,7 +174,7 @@ export class ORSService {
 
         const flattened = flattenCoords(segCoords);
         if (!flattened || flattened.length === 0) {
-          console.warn('⚠️ ORS returned empty/invalid geometry for a segment — using linear fallback for that segment.');
+          console.warn('⚠️ ORS retornou geometria vazia — fallback linear.');
           segment.forEach((p) => geometry.push([p.latitude, p.longitude]));
           continue;
         }
@@ -184,14 +192,14 @@ export class ORSService {
           .filter((p): p is [number, number] => p !== null);
 
         if (mapped.length === 0) {
-          console.warn('⚠️ ORS returned invalid coords for a segment — fallback linear.');
+          console.warn('⚠️ ORS retornou coords inválidas — fallback linear.');
           segment.forEach((p) => geometry.push([p.latitude, p.longitude]));
           continue;
         }
 
-        console.log(`      ✅ Batch ${b + 1} sucesso: ${mapped.length} pontos de geometria`);
+        console.log(`      ✅ Batch ${b + 1} sucesso: ${mapped.length} pontos`);
 
-        // avoid duplicating the last point of previous segment
+        // Evita duplicar último ponto do segmento anterior
         if (geometry.length > 0) {
           const last = geometry[geometry.length - 1];
           const firstMapped = mapped[0];
@@ -204,10 +212,14 @@ export class ORSService {
           geometry.push(...mapped);
         }
       } catch (err: any) {
-        console.warn(`⚠️ ORS batch ${b + 1}/${batches.length} failed, using linear fallback`);
-        console.warn(`   Erro: ${err?.message || 'Desconhecido'}`);
-        console.warn(`   URL: ${this.baseUrl}/v2/directions/driving-car/geojson`);
-        console.warn(`   Clientes no batch: ${segment.length}`);
+        const connErr = isConnectionError(err);
+        if (connErr) {
+          connectionFailed = true;
+          console.warn(`⚠️ ORS batch ${b + 1}: falha de conexão — pulando batches restantes`);
+          console.warn(`   Causa: ${err.cause?.code ?? err.cause?.message ?? err.message}`);
+        } else {
+          console.warn(`⚠️ ORS batch ${b + 1}/${batches.length} erro: ${err?.message}`);
+        }
         batches[b].forEach((p) => geometry.push([p.latitude, p.longitude]));
       }
     }
@@ -219,9 +231,8 @@ export class ORSService {
     try {
       if (!Array.isArray(clientes) || clientes.length < 2) return [];
 
-      // quick validation
       if (clientes.some(c => !isFinite(Number(c.latitude)) || !isFinite(Number(c.longitude)))) {
-        console.warn("⚠️ ORS getRoute: clients contain invalid coords, returning linear fallback.");
+        console.warn("⚠️ ORS getRoute: coords inválidas, retornando fallback linear.");
         return clientes.map((c) => [c.latitude, c.longitude]);
       }
 
@@ -250,7 +261,7 @@ export class ORSService {
         }
 
         const mapped = flattened.map((pt) => [Number(pt[1]), Number(pt[0])] as [number, number]).filter((p) => Number.isFinite(p[0]) && Number.isFinite(p[1]));
-        console.log(`   ✅ ORS: Rota gerada com sucesso (${mapped.length} pontos de geometria)`);
+        console.log(`   ✅ ORS: Rota gerada com sucesso (${mapped.length} pontos)`);
         return dedupeConsecutive(mapped);
       }
 
@@ -260,7 +271,6 @@ export class ORSService {
       return result;
     } catch (e: any) {
       console.warn('⚠️ Erro no ORS route:', e?.message ?? e);
-      // Always return fallback linear geometry
       return (clientes || []).map((c) => [c.latitude, c.longitude]);
     }
   }
