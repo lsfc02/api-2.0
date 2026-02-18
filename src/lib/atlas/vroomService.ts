@@ -123,7 +123,7 @@ export class VROOMService {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }, 60000);
+    }, 30000);
 
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
