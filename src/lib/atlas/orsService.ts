@@ -206,6 +206,7 @@ export class ORSService {
       } catch (err: any) {
         console.warn(`⚠️ ORS batch ${b + 1}/${batches.length} failed, using linear fallback`);
         console.warn(`   Erro: ${err?.message || 'Desconhecido'}`);
+        if (err?.cause) console.warn(`   Causa: ${err.cause?.code || err.cause?.message || String(err.cause)}`);
         console.warn(`   URL: ${this.baseUrl}/v2/directions/driving-car/geojson`);
         console.warn(`   Clientes no batch: ${segment.length}`);
         batches[b].forEach((p) => geometry.push([p.latitude, p.longitude]));

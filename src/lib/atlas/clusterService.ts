@@ -750,6 +750,7 @@ async function sequenceAndGeometry(
     }
   } catch (err: any) {
     console.warn(`⚠️ VROOM falhou: ${err?.message || err}`);
+    if (err?.cause) console.warn(`   Causa VROOM: ${err.cause?.code || err.cause?.message || String(err.cause)}`);
   }
 
   const ordered = enumerate(seq);
