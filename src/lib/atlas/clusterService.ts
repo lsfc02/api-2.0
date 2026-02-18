@@ -692,7 +692,9 @@ function detectarIlhas(clientes: Cliente[]): Cliente[][] {
 
 async function sequenceAndGeometry(
   clientes: Cliente[],
-  base?: { lat: number; lon: number }
+  base?: { lat: number; lon: number },
+  useVROOM = true,
+  useORS = true
 ): Promise<{
   ordered: Array<Cliente & { ordem: number }>;
   geometry: Array<[number, number]>;
@@ -735,36 +737,44 @@ async function sequenceAndGeometry(
 
   seq = twoOpt(seq);
 
-  try {
-    const res = await vroomService.optimizeRoute(seq);
-    if (res?.ordered?.length > 0) {
-      // VROOM já otimizou e retornou a geometria
-      let geometry = res.geometry?.length > 0 ?
-        res.geometry :
-        await orsService.getRouteFromORS(res.ordered).catch((err) => {
-          console.warn(`⚠️ ORS falhou após VROOM: ${err?.message || err}`);
-          return res.ordered.map(c => [c.latitude, c.longitude] as [number, number]);
-        });
+  if (useVROOM) {
+    try {
+      const res = await vroomService.optimizeRoute(seq);
+      if (res?.ordered?.length > 0) {
+        // VROOM já otimizou e retornou a geometria
+        let geometry = res.geometry?.length > 0 ?
+          res.geometry :
+          useORS
+            ? await orsService.getRouteFromORS(res.ordered).catch((err) => {
+                console.warn(`⚠️ ORS falhou após VROOM: ${err?.message || err}`);
+                return res.ordered.map(c => [c.latitude, c.longitude] as [number, number]);
+              })
+            : res.ordered.map(c => [c.latitude, c.longitude] as [number, number]);
 
-      return { ordered: res.ordered, geometry };
+        return { ordered: res.ordered, geometry };
+      }
+    } catch (err: any) {
+      console.warn(`⚠️ VROOM falhou: ${err?.message || err}`);
+      if (err?.cause) console.warn(`   Causa VROOM: ${err.cause?.code || err.cause?.message || String(err.cause)}`);
     }
-  } catch (err: any) {
-    console.warn(`⚠️ VROOM falhou: ${err?.message || err}`);
-    if (err?.cause) console.warn(`   Causa VROOM: ${err.cause?.code || err.cause?.message || String(err.cause)}`);
   }
 
   const ordered = enumerate(seq);
 
-  // Fallback: usar ORS para gerar geometria da rota
-  console.log(`   🔄 Tentando ORS para ${seq.length} clientes (fallback após VROOM falhar)...`);
-  let geometry = await orsService.getRouteFromORS(seq)
-    .catch((err) => {
-      console.warn(`⚠️ ORS também falhou: ${err?.message || err}`);
-      console.warn(`   Usando geometria linear (linha reta) para ${seq.length} clientes`);
-      return seq.map(c => [c.latitude, c.longitude] as [number, number]);
-    });
+  if (useORS) {
+    // Fallback: usar ORS para gerar geometria da rota
+    console.log(`   🔄 Tentando ORS para ${seq.length} clientes (fallback após VROOM falhar)...`);
+    const geometry = await orsService.getRouteFromORS(seq)
+      .catch((err) => {
+        console.warn(`⚠️ ORS também falhou: ${err?.message || err}`);
+        console.warn(`   Usando geometria linear (linha reta) para ${seq.length} clientes`);
+        return seq.map(c => [c.latitude, c.longitude] as [number, number]);
+      });
+    return { ordered, geometry };
+  }
 
-  return { ordered, geometry };
+  // Serviços offline: geometria linear direta
+  return { ordered, geometry: seq.map(c => [c.latitude, c.longitude] as [number, number]) };
 }
 
 export async function gerarRoteiro(
@@ -1094,6 +1104,16 @@ export async function gerarRoteiro(
     console.log(`   📍 Rotas começarão do cliente mais próximo ao centroide de cada dia`);
   }
 
+  // Pre-check: verificar disponibilidade dos serviços uma vez antes do loop
+  // Evita aguardar timeout (120s) para cada dia/batch quando serviços estão offline
+  console.log(`\n🔍 Verificando disponibilidade dos serviços de otimização...`);
+  const [orsAvailable, vroomAvailable] = await Promise.all([
+    orsService.checkHealth().catch(() => false),
+    vroomService.checkHealth().catch(() => false),
+  ]);
+  console.log(`   ORS:   ${orsAvailable  ? '✅ Online' : '❌ Offline - usando geometria linear'}`);
+  console.log(`   VROOM: ${vroomAvailable ? '✅ Online' : '❌ Offline - usando nearest neighbor + 2-opt'}`);
+
   const dias: RotaDia[] = [];
 
   // 🎯 SEMPRE gerar EXATAMENTE K dias (mesmo que algum fique vazio)
@@ -1106,7 +1126,7 @@ export async function gerarRoteiro(
       // Dia vazio - criar dia sem clientes
       dias.push({ dia: `Dia ${i + 1}`, clientes: [], geometria: [] });
     } else {
-      const { ordered, geometry } = await sequenceAndGeometry(lista, base);
+      const { ordered, geometry } = await sequenceAndGeometry(lista, base, vroomAvailable, orsAvailable);
       dias.push({ dia: `Dia ${i + 1}`, clientes: ordered, geometria: geometry });
     }
   }
