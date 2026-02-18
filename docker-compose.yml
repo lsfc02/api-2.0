@@ -6,12 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: api-atlas
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "9031:9031"
+    network_mode: host
     environment:
-      # ⚠️ IMPORTANTE: Use host.docker.internal ao invés de 192.168.50.6!
       - ORS_BASE_URL=http://192.168.50.6:8082/ors
       - VROOM_BASE_URL=http://192.168.50.6:3000
       - OPENAI_API_KEY=sua-key-aqui
